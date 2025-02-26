@@ -22,6 +22,8 @@ func main(){
 	go CPUUtilization()
 	go AsymmetricTraffic()
 	go PacketIn()
+	go PacketLossRate()
+	go PacketErrorRate()
 	http.Handle("/metrics", promhttp.Handler())
 	log.Println("Prometheus exporter running on :8080/metrics")
 	log.Fatal(http.ListenAndServe(":8080", nil))

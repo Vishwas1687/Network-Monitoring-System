@@ -55,7 +55,12 @@ func parseAsymmetricTraffic(data string, inter string) {
 			}
 		}
 	}
-	total_bytes.WithLabelValues(inter).Set(rx_bytes + tx_bytes)
+	if rx_bytes + tx_bytes == 0{
+		total_bytes.WithLabelValues(inter).Set(1)
+	}else{
+		total_bytes.WithLabelValues(inter).Set(rx_bytes + tx_bytes)
+	}
+	
 	inbound_outbound.WithLabelValues(inter).Set(math.Abs(tx_bytes - rx_bytes))
 }
 func AsymmetricTraffic(){
