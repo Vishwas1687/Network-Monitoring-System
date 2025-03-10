@@ -74,37 +74,41 @@ class TreeTopology(Topo):
             host = self.addHost(host_name, ip=f"{ip}/24")
             hosts.append(host)
             self.ip_to_host[ip] = host_name  # Store mapping of IP to host name
+            print("IP - Hostname:", ip, host_name)
             switch = random.choice(last_level_switches)
             self.addLink(host, switch, cls=TCLink, bw=100)  # Host-switch links
 
 # Replaying PCAP traffic with original source and destination
+import subprocess
+
 def replay_traffic(net, pcap_file, pcap_id, ip_to_host_map, ip_pairs):
     if not ip_pairs:
         print(f"No valid IP pairs found in {pcap_file}")
         return False
-    
-    temp_pcap = f"/tmp/traffic_{pcap_id}.pcap"
-    # Copy the pcap file to Mininet filesystem
-    subprocess.run(["cp", pcap_file, temp_pcap])
-    
+
+    success = False  # Track if at least one replay was successful
+
     for src_ip, dst_ip in ip_pairs:
-        # Find corresponding hosts in our network
         if src_ip in ip_to_host_map and dst_ip in ip_to_host_map:
             src_host_name = ip_to_host_map[src_ip]
             dst_host_name = ip_to_host_map[dst_ip]
-        
+            
             source_host = net.get(src_host_name)
             source_interface = f"{source_host.name}-eth0"
-        
+
             print(f"Replaying traffic from {src_host_name}({src_ip}) to {dst_host_name}({dst_ip}) using {pcap_file}")
-        
-            # --loop=0 means infinite replay, --intf1 specifies the interface
-            cmd = f"tcpreplay --intf1={source_interface} {temp_pcap} &"
-            source_host.cmd(cmd)
-            return True
+
+            # Command to filter packets in memory and replay them directly
+            filter_replay_cmd = f"tcpdump -r {pcap_file} -w - 'host {src_ip} and host {dst_ip}' | tcpreplay --intf1={source_interface} --loop=1 -"
+            source_host.cmd(filter_replay_cmd)
+
+            success = True  # Mark as successful if at least one replay runs
+
         else:
             print(f"Could not find matching hosts for IPs {src_ip} -> {dst_ip}")
-            return False
+
+    return success  # Return True if at least one replay was successful
+
 
 # Starting multiple PCAP files together using original IP pairs
 def start_multiple_replays(net, pcap_files, ip_to_host_map, all_ip_pairs, num_replays=1):
@@ -124,7 +128,7 @@ def start_multiple_replays(net, pcap_files, ip_to_host_map, all_ip_pairs, num_re
     
     # Starting specified number of replays
     for i in range(num_replays):
-        # Choose a random PCAP file from the provided list
+        # Choosing PCAP files in order from the provided list
         pcap_index = i % len(pcap_files)
         pcap_file = pcap_files[pcap_index]
         
