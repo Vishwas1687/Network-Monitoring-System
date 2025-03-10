@@ -34,7 +34,6 @@ var (
 
 func parseLookupsCacheHits(data string, sw string) float64 {
 	scanner := bufio.NewScanner(strings.NewReader(data))
-
 	for scanner.Scan(){
 		line := scanner.Text()
 		lookupRegex := regexp.MustCompile(`lookup=(\d+)`)
@@ -49,7 +48,6 @@ func parseLookupsCacheHits(data string, sw string) float64 {
 
 func parseMatchedCacheHits(data string, sw string) float64 {
 	scanner := bufio.NewScanner(strings.NewReader(data))
-
 	for scanner.Scan(){
 		line := scanner.Text()
 		matchedRegex := regexp.MustCompile(`matched=(\d+)`)
@@ -84,7 +82,6 @@ func FlowTableCacheHit() {
 				continue
 			}
 			matches := parseMatchedCacheHits(string(matched),sw)
-
 			lookups_metric.WithLabelValues(sw).Set(lookups)
 			matched_metric.WithLabelValues(sw).Set(matches)
 		}

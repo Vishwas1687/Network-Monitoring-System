@@ -28,7 +28,7 @@ func parseMemoryPerBridge(num_bridges float64, memory string) {
 		fmt.Println("Error in parsing", match[0])
 	}
 
-	metric := (value * 1000/num_bridges)/10e9
+	metric := (value * 1000/num_bridges)/10e6
 	memory_per_bridge.WithLabelValues().Set(metric)
 }
 func MemoryPerBridge(){
