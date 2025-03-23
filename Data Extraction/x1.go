@@ -4,10 +4,12 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -44,11 +46,11 @@ var metrics = map[string]map[string]string{
 		"Rate of Port Flapping":          "rate(ovs_port_flapping[" + duration + "])",
 	},
 	"interface_metrics": {
-			"Asymmetric Traffic Volume":         "(delta(ovs_inbound_outbound[" + duration + "]) / (delta(ovs_total_bytes_interface[" + duration + "])) * 100",
-			"Interface Utilization Percentage":  "(rate(ovs_interface_bytes[1m])/(ovs_interface_link_speed * 60)) * 100",
-		},
+		// Using simplified queries for the problematic metrics
+		"Asymmetric Traffic Volume":        "delta(ovs_inbound_outbound[" + duration + "])",
+		"Interface Utilization Percentage": "rate(ovs_interface_bytes[1m])",
+	},
 }
-
 
 // Function to fetch and process Prometheus data
 func fetchMetrics() (map[string][]string, error) {
@@ -56,26 +58,60 @@ func fetchMetrics() (map[string][]string, error) {
 
 	for category, metricGroup := range metrics {
 		for metricName, query := range metricGroup {
-			// Create dynamic Prometheus query URL
-			url := fmt.Sprintf("http://localhost:9090/api/v1/query_range?query=%s&start=1742700300&end=1742700964&step=10s", query)
+			// Create dynamic Prometheus query URL with proper URL encoding
+			// Use QueryEscape for each parameter separately
+			encodedQuery := url.QueryEscape(query)
+			queryURL := fmt.Sprintf("http://localhost:9090/api/v1/query_range?query=%s&start=1742700300&end=1742700964&step=10s", 
+				encodedQuery)
+			
+			// Debug information
+			// fmt.Printf("Fetching: %s\nURL: %s\n", metricName, queryURL)
 			
 			// Fetch data from Prometheus
-			resp, err := http.Get(url)
+			resp, err := http.Get(queryURL)
 			if err != nil {
 				fmt.Println("Error fetching data for", metricName, ":", err)
 				continue
 			}
-			defer resp.Body.Close()
-
-			body, err := ioutil.ReadAll(resp.Body)
+			
+			body, err := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			
 			if err != nil {
 				fmt.Println("Error reading response for", metricName, ":", err)
 				continue
 			}
 
+			// Debug: Print first part of response
+			bodyPreview := string(body)
+			if len(bodyPreview) > 200 {
+				bodyPreview = bodyPreview[:200] + "..."
+			}
+			// fmt.Printf("Response preview for %s: %s\n", metricName, bodyPreview)
+
+			// Check if response is empty or invalid before parsing
+			if len(body) == 0 {
+				fmt.Printf("Empty response body for %s\n", metricName)
+				continue
+			}
+
+			// Try to remove any potential BOM or unexpected characters
+			cleanBody := strings.TrimSpace(string(body))
+			if !strings.HasPrefix(cleanBody, "{") {
+				firstBrace := strings.Index(cleanBody, "{")
+				if firstBrace > -1 {
+					cleanBody = cleanBody[firstBrace:]
+					body = []byte(cleanBody)
+				} else {
+					fmt.Printf("Invalid JSON format for %s (no opening brace found)\n", metricName)
+					continue
+				}
+			}
+
 			var data PrometheusResponse
 			if err := json.Unmarshal(body, &data); err != nil {
-				fmt.Println("Error unmarshalling JSON for", metricName, ":", err)
+				fmt.Printf("Error unmarshalling JSON for %s: %v\nResponse body: %s\n", 
+					metricName, err, string(body[:min(100, len(body))]))
 				continue
 			}
 
@@ -84,44 +120,56 @@ func fetchMetrics() (map[string][]string, error) {
 				continue
 			}
 
+			// Process timestamps only once
+			if len(data.Data.Result) > 0 && len(data.Data.Result[0].Values) > 0 && len(metricsData["timestamp"]) == 0 {
+				for _, value := range data.Data.Result[0].Values {
+					timestamp := int64(value[0].(float64))
+					timeStr := time.Unix(timestamp, 0).Format("2006-01-02 15:04:05")
+					metricsData["timestamp"] = append(metricsData["timestamp"], timeStr)
+				}
+			}
+
 			// Process the data and store it in `metricsData`
 			if category == "switch_metrics" {
-				for i, result := range data.Data.Result {
+				for _, result := range data.Data.Result {
 					switchName := result.Metric["switch"]
 					header := fmt.Sprintf("%s - %s", metricName, switchName) // "Metric Name - Switch Name"
 	
-					for _, value := range result.Values {
-						timestamp := int64(value[0].(float64))
+					for i, value := range result.Values {
 						metricValue := value[1].(string)
-						timeStr := time.Unix(timestamp, 0).Format("2006-01-02 15:04:05")
-	
-						if i == 0 {
-							metricsData["timestamp"] = append(metricsData["timestamp"], timeStr)
+						if i < len(metricsData["timestamp"]) {
+							metricsData[header] = append(metricsData[header], metricValue)
 						}
-						metricsData[header] = append(metricsData[header], metricValue)
 					}
 				}
 			} else if category == "interface_metrics" {
 				for _, result := range data.Data.Result {
-					interfaceName := result.Metric["interface"]
-					header := fmt.Sprintf("%s - %s", metricName, interfaceName) // "Metric Name - Interface Name"
+					// Get interface name safely with a fallback
+					interfaceName := "unknown"
+					if name, ok := result.Metric["interface"]; ok {
+						interfaceName = name
+					}
+					
+					header := fmt.Sprintf("%s - %s", metricName, interfaceName)
 	
-					for _, value := range result.Values {
+					for i, value := range result.Values {
 						metricValue := value[1].(string)
-						metricsData[header] = append(metricsData[header], metricValue)
+						if i < len(metricsData["timestamp"]) {
+							metricsData[header] = append(metricsData[header], metricValue)
+						}
 					}
 				}
 			} else if category == "infra_metrics" {
 				for _, result := range data.Data.Result {
-					
 					header := metricName
-					for _, value := range result.Values {
+					for i, value := range result.Values {
 						metricValue := value[1].(string)
-						metricsData[header] = append(metricsData[header], metricValue)
+						if i < len(metricsData["timestamp"]) {
+							metricsData[header] = append(metricsData[header], metricValue)
+						}
 					}
 				}
 			}
-			
 		}
 	}
 
@@ -152,7 +200,9 @@ func writeMapToCSV(metricName string, data map[string][]string, filename string)
 	headers = append([]string{"timestamp"}, headers...)
 
 	// Write headers
-	writer.Write(headers)
+	if err := writer.Write(headers); err != nil {
+		return fmt.Errorf("error writing CSV headers: %w", err)
+	}
 
 	// Determine number of rows
 	numRows := 0
@@ -172,10 +222,20 @@ func writeMapToCSV(metricName string, data map[string][]string, filename string)
 				row = append(row, "") // Empty value if missing
 			}
 		}
-		writer.Write(row)
+		if err := writer.Write(row); err != nil {
+			return fmt.Errorf("error writing CSV row %d: %w", i, err)
+		}
 	}
 
 	return nil
+}
+
+// Helper function for min
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // Main function
