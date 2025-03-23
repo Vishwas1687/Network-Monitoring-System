@@ -103,6 +103,7 @@ print("Packet replay completed.")
 def run_topology():
     global global_ip_map
     setLogLevel('info')
+    
     pcap_files = [f for f in os.listdir('.') if f.startswith('traffic') and f.endswith('.pcap')]
     all_public_ips = set()
     for pcap_file in pcap_files:
@@ -110,11 +111,14 @@ def run_topology():
     if not all_public_ips:
         info("No valid public IPs found in the PCAP files.\n")
         return
+
     global_ip_map.update(generate_ip_mapping(list(all_public_ips)))
     topo = RandomTopo(len(global_ip_map))
     net = Mininet(topo=topo, controller=lambda name: RemoteController(name, ip='127.0.0.1', port=6633), link=TCLink)
     net.start()
     info(f"Mapped {len(global_ip_map)} public IPs to private subnet:\n{global_ip_map}\n")
+
+
     threads = []
     for pcap_file in pcap_files:
         thread = threading.Thread(target=replay_packets, args=(net, pcap_file))
@@ -122,6 +126,8 @@ def run_topology():
         threads.append(thread)
     for thread in threads:
         thread.join()
+
+
     info("\nChecking OVS Flow Table:\n")
     os.system("sudo ovs-ofctl dump-flows s1")
     info("\nChecking OVS Port Table:\n")
