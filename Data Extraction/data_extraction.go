@@ -29,12 +29,12 @@ type PrometheusResponse struct {
 var duration = "5m"
 var metrics = map[string]map[string]string{
 	"infra_metrics": {
-		"Resource Utilization":      "ovs_resource_utilization",
-		"CPU Utilization":           "ovs_cpu_utilization",
-		"Bridge Controller Status":  "ovs_bridge_controller_status",
-		"Memory Per Bridge":         "ovs_memory_per_bridge",
-		"Rate of control Channel Flap": "rate(ovs_control_channel_flap[" + duration + "])",
-		"Database Space Utilization":      "ovs_db_space_utilization",
+		"Resource Utilization":          "ovs_resource_utilization",
+		"CPU Utilization":               "ovs_cpu_utilization",
+		"Bridge Controller Status":      "ovs_bridge_controller_status",
+		"Memory Per Bridge":             "ovs_memory_per_bridge",
+		"Rate of control Channel Flap":  "rate(ovs_control_channel_flap[" + duration + "])",
+		"Database Space Utilization":    "ovs_db_space_utilization",
 	},
 	"switch_metrics": {
 		"Flow Table Utilization":         "ovs_flow_table_utilization",
@@ -46,9 +46,9 @@ var metrics = map[string]map[string]string{
 		"Rate of Port Flapping":          "rate(ovs_port_flapping[" + duration + "])",
 	},
 	"interface_metrics": {
-		// Using simplified queries for the problematic metrics
-		"Asymmetric Traffic Volume":        "delta(ovs_inbound_outbound[" + duration + "])",
-		"Interface Utilization Percentage": "rate(ovs_interface_bytes[1m])",
+		// Corrected parentheses in the complex queries
+		"Asymmetric Traffic Volume":        "(delta(ovs_inbound_outbound[" + duration + "]) / delta(ovs_total_bytes_interface[" + duration + "])) * 100",
+		"Interface Utilization Percentage": "(rate(ovs_interface_bytes[1m])/(ovs_interface_link_speed * 60)) * 100",
 	},
 }
 
@@ -59,13 +59,9 @@ func fetchMetrics() (map[string][]string, error) {
 	for category, metricGroup := range metrics {
 		for metricName, query := range metricGroup {
 			// Create dynamic Prometheus query URL with proper URL encoding
-			// Use QueryEscape for each parameter separately
 			encodedQuery := url.QueryEscape(query)
 			queryURL := fmt.Sprintf("http://localhost:9090/api/v1/query_range?query=%s&start=1742700300&end=1742700964&step=10s", 
 				encodedQuery)
-			
-			// Debug information
-			// fmt.Printf("Fetching: %s\nURL: %s\n", metricName, queryURL)
 			
 			// Fetch data from Prometheus
 			resp, err := http.Get(queryURL)
@@ -81,13 +77,6 @@ func fetchMetrics() (map[string][]string, error) {
 				fmt.Println("Error reading response for", metricName, ":", err)
 				continue
 			}
-
-			// Debug: Print first part of response
-			bodyPreview := string(body)
-			if len(bodyPreview) > 200 {
-				bodyPreview = bodyPreview[:200] + "..."
-			}
-			// fmt.Printf("Response preview for %s: %s\n", metricName, bodyPreview)
 
 			// Check if response is empty or invalid before parsing
 			if len(body) == 0 {
