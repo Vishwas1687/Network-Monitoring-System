@@ -1,26 +1,26 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
 	"bufio"
-	"time"
+	"fmt"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	
 )
+
 var (
 	packet_loss = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name:"ovs_packet_loss",
-			Help:"Helps to find packet loss rate of a port",
+			Name: "ovs_packet_loss",
+			Help: "Helps to find packet loss rate of a port",
 		},
 		[]string{"interface"},
-	)	
+	)
 )
 
 func parsePacketLossRate(data string, inter string) {
@@ -28,7 +28,7 @@ func parsePacketLossRate(data string, inter string) {
 
 	var rx_dropped, tx_dropped float64
 
-	for scanner.Scan(){
+	for scanner.Scan() {
 		line := scanner.Text()
 		rxRegex := regexp.MustCompile(`rx_dropped=(\d+)`)
 		txRegex := regexp.MustCompile(`tx_dropped=(\d+)`)
@@ -47,19 +47,18 @@ func parsePacketLossRate(data string, inter string) {
 	}
 	packet_loss.WithLabelValues(inter).Set(rx_dropped + tx_dropped)
 }
-func PacketLossRate(){
+func PacketLossRate() {
 	for {
 		interfaces := GetInterfaces()
 		for _, inter := range interfaces {
 			command := `ovs-vsctl list interface ` + inter + ` | grep statistics`
-		    cmd := exec.Command("sh","-c",command)
+			cmd := exec.Command("sh", "-c", command)
 			output, err := cmd.CombinedOutput()
-			if err != nil{
-				fmt.Println("Error in command:",command)
+			if err != nil {
+				fmt.Println("Error in command:", command)
 			}
 			parsePacketLossRate(string(output), inter)
 		}
 		time.Sleep(10 * time.Second)
 	}
 }
-

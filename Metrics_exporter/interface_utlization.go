@@ -45,27 +45,26 @@ func getLinkSpeeds() {
 	for scanner.Scan() {
 		// Extract link speed
 		line := scanner.Text()
-		
 
-		if i % 2 ==1 {
+		if i%2 == 1 {
 			linkSpeedRegex := regexp.MustCompile(`link_speed\s*:\s*(\d+)`)
-				if match := linkSpeedRegex.FindStringSubmatch(line); match != nil {
-					if value, err := strconv.ParseFloat(match[1], 64); err == nil {
-						link_speed = value
-					}
-					i+=1
-			}else{
-				i+=2
+			if match := linkSpeedRegex.FindStringSubmatch(line); match != nil {
+				if value, err := strconv.ParseFloat(match[1], 64); err == nil {
+					link_speed = value
+				}
+				i += 1
+			} else {
+				i += 2
 			}
-		}else{
+		} else {
 			// Extract interface name
 			interfaceRegex := regexp.MustCompile(`name\s*:\s*(s\d+-eth\d+)`)
 			if match := interfaceRegex.FindStringSubmatch(line); match != nil {
 				interface_name := match[1]
 				interface_link_speeds.WithLabelValues(interface_name).Set(link_speed)
-				i+=1
+				i += 1
 			}
-		}	
+		}
 	}
 }
 
@@ -107,19 +106,18 @@ func InterfaceUtilization() {
 
 					if err1 == nil && err2 == nil {
 						interface_bytes.WithLabelValues(interface_name).Set(rx_bytes + tx_bytes)
-					} 
-				}else{
+					}
+				} else {
 					lineRegex = regexp.MustCompile(`bytes=(\d+)`)
 					if match := lineRegex.FindStringSubmatch(line); match != nil {
 						rx_bytes, err := strconv.ParseFloat(match[1], 64)
-	
+
 						if err == nil {
 							interface_bytes.WithLabelValues(interface_name).Set(rx_bytes)
-						} 
+						}
 					}
 				}
 
-				
 			}
 		}
 		time.Sleep(10 * time.Second)

@@ -2,20 +2,20 @@ package main
 
 import (
 	"fmt"
-	"strings"
-	"strconv"
-	"time"
 	"os/exec"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	
 )
+
 var (
 	cpu_utilization = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name:"ovs_cpu_utilization",
-			Help:"Helps measure the cpu utilization",
+			Name: "ovs_cpu_utilization",
+			Help: "Helps measure the cpu utilization",
 		},
 		[]string{},
 	)
@@ -29,16 +29,15 @@ func parseCPUUtilization(data string) {
 	}
 	cpu_utilization.WithLabelValues().Set(value)
 }
-func CPUUtilization(){
+func CPUUtilization() {
 	for {
 		command := `sudo ps -C ovs-vswitchd -o %cpu`
-		cmd := exec.Command("sh","-c",command)
+		cmd := exec.Command("sh", "-c", command)
 		output, err := cmd.CombinedOutput()
-		if err != nil{
-			fmt.Println("Error in running command:",cmd)
+		if err != nil {
+			fmt.Println("Error in running command:", cmd)
 		}
 		parseCPUUtilization(string(output))
 		time.Sleep(10 * time.Second)
 	}
 }
-

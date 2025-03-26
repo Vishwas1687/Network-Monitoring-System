@@ -2,32 +2,32 @@ package main
 
 import (
 	"fmt"
-	"strconv"
-	"time"
-	"os/exec"
 	"math"
+	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	
 )
+
 var (
 	flows_modification_count = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name:"ovs_flows_modification",
-			Help:"Helps to find the change in the flow entries over time",
+			Name: "ovs_flows_modification",
+			Help: "Helps to find the change in the flow entries over time",
 		},
 		[]string{"switch"},
 	)
 )
 
-var previousFlowState map[string] float64
-var flowsChange map[string] float64
+var previousFlowState map[string]float64
+var flowsChange map[string]float64
 
 func parseFlowsRuleModification(data string, sw string) {
 	match := strings.Fields(data)
-	if previousFlowState == nil{
+	if previousFlowState == nil {
 		previousFlowState = make(map[string]float64)
 	}
 	if flowsChange == nil {
@@ -43,19 +43,18 @@ func parseFlowsRuleModification(data string, sw string) {
 	previousFlowState[sw] = currentFlows
 	flows_modification_count.WithLabelValues(sw).Set(flowsChange[sw])
 }
-func FlowRuleModificationsCount(){
+func FlowRuleModificationsCount() {
 	for {
 		switches := GetSwitches()
 		for _, sw := range switches {
 			command := `ovs-ofctl dump-flows ` + sw + ` | wc -l`
-		    cmd := exec.Command("sh","-c",command)
+			cmd := exec.Command("sh", "-c", command)
 			flowOutput, err := cmd.CombinedOutput()
-			if err != nil{
-				fmt.Println("Error in command:",command)
+			if err != nil {
+				fmt.Println("Error in command:", command)
 			}
 			parseFlowsRuleModification(string(flowOutput), sw)
 		}
 		time.Sleep(10 * time.Second)
 	}
 }
-

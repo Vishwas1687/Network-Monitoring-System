@@ -1,23 +1,23 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
 	"bufio"
-	"time"
+	"fmt"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	
 )
+
 var (
 	packet_in = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name:"ovs_packet_in",
-			Help:"Helps to find the number of packet in messages",
+			Name: "ovs_packet_in",
+			Help: "Helps to find the number of packet in messages",
 		},
 		[]string{"switch"},
 	)
@@ -26,7 +26,7 @@ var (
 func parsePacketIn(data string, sw string) {
 	scanner := bufio.NewScanner(strings.NewReader(data))
 
-	for scanner.Scan(){
+	for scanner.Scan() {
 		line := scanner.Text()
 		bytesRegex := regexp.MustCompile(`n_bytes=(\d+)`)
 		if match := bytesRegex.FindStringSubmatch(line); match != nil {
@@ -35,16 +35,16 @@ func parsePacketIn(data string, sw string) {
 			}
 		}
 	}
-	
+
 }
-func PacketIn(){
+func PacketIn() {
 	switches := GetSwitches()
 	for _, sw := range switches {
-		command := `ovs-ofctl add-flow `+ sw + ` "priority=1, actions=controller"`
-		cmd := exec.Command("sh","-c",command)
+		command := `ovs-ofctl add-flow ` + sw + ` "priority=1, actions=controller"`
+		cmd := exec.Command("sh", "-c", command)
 		_, err := cmd.CombinedOutput()
-		if err != nil{
-			fmt.Println("Error in command:",command)
+		if err != nil {
+			fmt.Println("Error in command:", command)
 		}
 	}
 
@@ -52,14 +52,13 @@ func PacketIn(){
 		switches := GetSwitches()
 		for _, sw := range switches {
 			command := `ovs-ofctl dump-flows ` + sw + ` | grep CONTROLLER`
-		    cmd := exec.Command("sh","-c",command)
+			cmd := exec.Command("sh", "-c", command)
 			output, err := cmd.CombinedOutput()
-			if err != nil{
-				fmt.Println("Error in command:",command)
+			if err != nil {
+				fmt.Println("Error in command:", command)
 			}
 			parsePacketIn(string(output), sw)
 		}
 		time.Sleep(10 * time.Second)
 	}
 }
-

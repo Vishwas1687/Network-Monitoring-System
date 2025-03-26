@@ -1,23 +1,23 @@
 package main
 
 import (
-	"fmt"
 	"bufio"
-	"strings"
+	"fmt"
+	"os/exec"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
-	"os/exec"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	
 )
+
 var (
 	flowStabilityIndex = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name:"ovs_flow_stability_index",
-			Help:"Helps measure the number of long duration flows",
+			Name: "ovs_flow_stability_index",
+			Help: "Helps measure the number of long duration flows",
 		},
 		[]string{"switch"},
 	)
@@ -27,11 +27,11 @@ func parseDuration(data string, sw string) {
 	scanner := bufio.NewScanner(strings.NewReader(data))
 	durationRegex := regexp.MustCompile(`duration=(\d+)`)
 	var flowCount, elephantFLows float64
-	var Threshold float64 = 1000
+	var Threshold float64 = 2000
 	var skipFirstLine bool = true
-	for scanner.Scan(){
+	for scanner.Scan() {
 		line := scanner.Text()
-		if skipFirstLine{
+		if skipFirstLine {
 			skipFirstLine = false
 			continue
 		}
@@ -44,20 +44,20 @@ func parseDuration(data string, sw string) {
 			}
 		}
 	}
-	metric := 1 - elephantFLows / flowCount
-	if flowCount == 0{
+	metric := 1 - elephantFLows/flowCount
+	if flowCount == 0 {
 		metric = 1
 	}
 	flowStabilityIndex.WithLabelValues(sw).Set(metric)
 }
-func FlowStabilityIndex(){
+func FlowStabilityIndex() {
 	for {
 		switches := GetSwitches()
 		for _, sw := range switches {
 			command := `ovs-ofctl dump-flows ` + sw
-		    cmd := exec.Command("sh","-c",command)
+			cmd := exec.Command("sh", "-c", command)
 			flowOutput, err := cmd.CombinedOutput()
-			if err != nil{
+			if err != nil {
 				fmt.Println("Error in command ovs-ofctl dump-flows ", sw)
 			}
 			parseDuration(string(flowOutput), sw)
@@ -65,4 +65,3 @@ func FlowStabilityIndex(){
 		time.Sleep(10 * time.Second)
 	}
 }
-

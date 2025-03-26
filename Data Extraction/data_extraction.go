@@ -26,8 +26,10 @@ type PrometheusResponse struct {
 	} `json:"data"`
 }
 
-// Global metrics map
+// 1742916761
 var duration = "5m"
+var start = "1742966300"
+var end = "1742966554"
 
 // Key - Metric Name
 // Value - Prometheus Query
@@ -65,8 +67,8 @@ func fetchMetrics() (map[string][]string, error) {
 		for metricName, query := range metricGroup {
 			// Creating dynamic Prometheus query URL with proper URL encoding
 			encodedQuery := url.QueryEscape(query)
-			queryURL := fmt.Sprintf("http://localhost:9090/api/v1/query_range?query=%s&start=1742700300&end=1742700964&step=10s",
-				encodedQuery)
+			queryURL := fmt.Sprintf("http://localhost:9090/api/v1/query_range?query=%s&start=%s&end=%s&step=10s",
+				encodedQuery, start, end)
 
 			// Fetching data from Prometheus
 			resp, err := http.Get(queryURL)
