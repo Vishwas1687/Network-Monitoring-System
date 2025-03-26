@@ -13,23 +13,22 @@ var infra_metrics = []string{
 }
 
 // The field value dictates the label of type of attack on the switch
-// 0 - Normal , 1 - Dos Attack (SYN Flood, Push Flood, Port Scanning),
+// 0 - Normal Low Traffic , 1 - Dos Attack (SYN Flood),
 // 2 - Flow Table Exhaustion (Controller misconfiguration, controller compromised,
 // control channel attack)
-// 3 - Elephant Flow
-// 4 - Bursty Flow
+// 3 - Genuine Medium traffic (Syn packets don't exist so much but packet in messages are generated in this)
 // 5 - Dos Attack and Flow Table Exhaustion
 
 var switches map[string]string = map[string]string{
 	"s2":  "0",
 	"s3":  "0",
-	"s4":  "1",
-	"s5":  "1",
+	"s4":  "3",
+	"s5":  "3",
 	"s6":  "0",
-	"s7":  "1",
-	"s8":  "0",
-	"s9":  "0",
-	"s10": "1",
+	"s7":  "0",
+	"s8":  "3",
+	"s9":  "3",
+	"s10": "0",
 }
 
 // contains checks if a given item exists in a slice of strings.
