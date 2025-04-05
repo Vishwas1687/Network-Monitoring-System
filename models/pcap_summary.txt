@@ -1,0 +1,135 @@
+5 switches and 30 hosts (Round Robin Assignment of Hosts)
+1) Elephant Flows and Normal Flows(13 * 5 = 65) (1-13) ( Base Traffic Generation)
+2) Bursty Traffic (5 * 6 = 30) (14-19) ( Basic Traffic Generation)
+
+1) start = 1743527850
+end = 1743528250
+
+April 1st 10:46 to 10:52 ( PM )
+
+s1, s2, s3, s4, s5 = Elephant Flows ( Average Flows > 1K and less than 4K)
+
+2) start = 1743529678
+end = 1743529900
+
+April 1st 11:17 to 11:21 (PM)
+
+s2, s3 = Elephant Flows
+s1, s4, s5 = Normal Flows
+
+3) start = 1743530090
+end = 1743530338
+
+April 1st 11:25 to 11:30 (PM)
+
+s2, s3 = Elephant Flows
+s1, s4, s5 = Normal Flows
+
+4) start = 1743530425
+end = 1743530680
+
+April 1st 11:30 to 11:34 (PM)
+
+s1, s2, s3, s4, s5 = Elephant Flows ( Average Flows > 500 and less than 2K)
+
+5) start = 1743562426
+end = 1743562775
+
+April 2nd 08:24 to 08:29 (AM)
+
+s2,s3,s4,s5 = Elephant Flows (Very High Iperf Traffic > 50K)
+s1 = Normal Flows
+
+6) start = 1743562900
+end = 1743563216
+
+April 2nd 8:31 to 8:37 (AM)
+s2,s3,s4,s5 = Elephant Flows  ( Average Flows > 2k)
+s1 = Normal Flows
+
+7) start = 1743563351
+end = 1743563699
+
+April 2nd 8:39 to 8:45 (AM)
+
+s1, s2, s3, s4, s5 = Elephant Flows ( Average Flows > 1K)
+
+8) start = 1743563826
+end = 1743564400
+
+April 2nd 8:47 to 8:56 (AM)
+
+s3, s4 = Elephant Flows (Slowly Increasing because no normal traffic present)
+s1,s2,s5 = Normal Traffic
+
+9) start = 1743578333
+end = 1743578979
+
+April 2nd 12:49 to 1:00 (PM)
+s3, s4 = Elephant Flows (Slowly Increasing because no normal traffic present)
+s1,s2,s5 = Normal Traffic
+
+10) start = 1743579020
+end = 1743579282
+
+April 2nd 1:00 to 1:04 (PM)
+s1, s2, s3, s4, s5 = Normal Traffic 
+
+11) start = 1743579417
+end = 1743579750
+
+April 2nd 1:07 to 1:12 (PM)
+s1, s2, s3, s4, s5 = Elephant Flows ( Average Flows > 1K and <3K)
+
+
+12) start = 1743579938
+end = 1743580200
+
+April 2nd 1:15 to 1:19(PM)
+s2, s3, s4, s5 = Elephant Flows ( Average Flows < 500 and >200)
+s1 Normal Flow
+
+13) start = 1743580288
+end = 1743581188
+
+April 2nd 1:21 to 1:35 (PM)
+s2, s3, s4, s5 = Elephant Flows ( Average Flows > 500 and <2000)
+s1 Normal Flow
+
+1)start = 1743588601
+end = 1743588959
+
+April 2nd 3:39 to 3:45 (PM)
+s1, s2, s3, s4, s5 = Bursty Traffic 
+
+2) start = 1743589167
+end = 1743589500
+
+April 2nd 3:49 to 3:55 (PM)
+s1, s2, s3, s4, s5 = Bursty Traffic
+
+3) start = 1743589620
+end = 1743590150
+
+April 2nd 3:57 to 4:05 (PM)
+s1, s2, s3, s4, s5 = Bursty Traffic
+
+4) start = 1743590147
+end = 1743590650
+
+April 2nd 4:06 to 4:13 (PM)
+s1, s2, s3, s4, s5 = Bursty Traffic
+
+
+5) start = 1743674658
+end = 1743674952
+
+April 3rd 3:34 to 3:38 (PM)
+s1, s2, s3, s4, s5 = Bursty Traffic
+
+6) start = 1743675030
+end = 1743675313
+
+April 3rd 3:40 to 3:45 (PM)
+s1, s2, s3, s4, s5 = Bursty Traffic
+
